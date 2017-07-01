@@ -1,0 +1,23 @@
+{
+  "name": "react-redux-set-local",
+  "version": "0.1.0",
+  "description": "Local Redux state without writing your own reducers",
+  "main": "./lib/index.js",
+  "typings": "./lib/index.d.ts",
+  "author": "Andrew Fong <id@andrewfong.com>",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^15.5.4",
+    "react-redux": "^5.0.5",
+    "redux": "^3.6.0"
+  },
+  "devDependencies": {
+    "@types/react": "^15.0.25",
+    "@types/react-redux": "^4.4.40",
+    "tslint": "^5.4.3",
+    "typescript": "2.4"
+  },
+  "dependencies": {
+    "tslib": "^1.7.1"
+  }
+}

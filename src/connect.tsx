@@ -35,11 +35,6 @@ export interface ComponentDecorator<OwnProps, ToProps> {
 */
 export interface SetLocalFn<S> { (s: S|undefined, type?: string): void; }
 
-// Type of a function that takes props and returns string for key in store
-interface KeyFn<OwnProps> {
-  (p: OwnProps): string;
-}
-
 /*
   Type for the function `connect` expects to map local state and setLocals to
   to props in the connected React component.
@@ -48,6 +43,25 @@ export interface MapToPropsFn<S, ToProps, OwnProps> {
   (localState: S|undefined,
    setLocal: SetLocalFn<S>,
    ownProps: OwnProps): ToProps;
+}
+
+// Type of a function that takes props and returns string for key in store
+export interface KeyFn<OwnProps> {
+  (p: OwnProps): string;
+}
+
+export interface ConnectOpts<OwnProps> {
+  /*
+    Custom key for local state isolation -- can be a function that takes
+    props and thereby allow "local" state shared across multiple component
+    instances.
+  */
+  key?: string|KeyFn<OwnProps>;
+
+  /*
+    Should state persist after component unmount
+  */
+  persist?: boolean;
 }
 
 // Helper function to return a unique default key for a component class when
@@ -61,21 +75,9 @@ const getInstanceKey = () => Config.LOCAL_KEY_PREFIX + (currentLocalKeyIndex++);
 */
 export const connectFactory = (storeKey?: string) => {
   function connect<S, ToProps, OwnProps>(
-    localKey: string|((p: OwnProps) => string),
     mapToProps: MapToPropsFn<S, ToProps, OwnProps>,
-  ): ComponentDecorator<OwnProps, ToProps>;
-  function connect<S, ToProps, OwnProps>(
-    mapToProps: MapToPropsFn<S, ToProps, OwnProps>
-  ): ComponentDecorator<OwnProps, ToProps>;
-  function connect<S, ToProps, OwnProps>(
-    firstArg: string|KeyFn<OwnProps>|MapToPropsFn<S, ToProps, OwnProps>,
-    secondArg?: MapToPropsFn<S, ToProps, OwnProps>
+    opts: ConnectOpts<OwnProps> = {}
   ): ComponentDecorator<OwnProps, ToProps> {
-    // De-overload params
-    const mapToProps = secondArg ||
-      firstArg as MapToPropsFn<S, ToProps, OwnProps>;
-    const localKey = secondArg && firstArg as string|KeyFn<OwnProps>;
-
     /*
       Set up an object to track reference counts so we know when to de-persist
       Redux state.
@@ -112,7 +114,7 @@ export const connectFactory = (storeKey?: string) => {
         one isn't provided.
       */
       (initialState: any, ownProps: OwnProps) => {
-        const instanceKey = localKey || getInstanceKey();
+        const instanceKey = opts.key || getInstanceKey();
         const keyFn = typeof instanceKey === "function" ?
           instanceKey : () => instanceKey;
         const thisStoreKey = storeKey || Config.DEFAULT_STORE_KEY;
@@ -167,21 +169,19 @@ export const connectFactory = (storeKey?: string) => {
           let { localKey } = this.props;
           if (localKey !== oldKey) {
             refCounts.incr(localKey);
-            if (! refCounts.decr(oldKey)) {
-              this.clearState();
-            }
+            this.clearState(oldKey);
           }
         }
 
         componentWillUnmount() {
-          if (! refCounts.decr(this.props.localKey)) {
-            this.clearState();
-          }
+          this.clearState(this.props.localKey);
         }
 
         // Clean up old state if nothing is listening to it anymore
-        clearState() {
-          this.props.setLocal(undefined, Config.UNMOUNT_ACTION_TYPE);
+        private clearState(key: string) {
+          if (!refCounts.decr(key) && !opts.persist) {
+            this.props.setLocal(undefined, Config.UNMOUNT_ACTION_TYPE);
+          }
         }
       }
       return withRedux(ConnectLocal);

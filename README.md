@@ -116,10 +116,9 @@ from props to synchronize state between components.
 
 ```js
 
-export const Container = connect(
-  mapToProps,
-  (props) => props.color
-)(DogShow);
+export const Container = connect(mapToProps, {
+  key: (props) => props.color;
+})(DogShow);
 
 ...
 

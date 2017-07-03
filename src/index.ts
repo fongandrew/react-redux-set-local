@@ -7,6 +7,7 @@ export {
 export {
   SetLocalFn,
   MapToPropsFn,
+  ConnectOpts,
   connectFactory,
   connect
 } from "./connect";

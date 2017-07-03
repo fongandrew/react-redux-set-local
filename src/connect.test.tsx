@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { mount } from "enzyme";
 import { createStore, combineReducers } from "redux";
 import { Provider } from "react-redux";
-import { connect, MapToPropsFn } from "./connect";
+import { connect, MapToPropsFn, ConnectOpts } from "./connect";
 import { reducer } from "./reducer";
 
 interface LocalState {
@@ -103,9 +103,12 @@ describe("Connect", () => {
   );
 
   describe("with a key function", () => {
-    const getColorContainer = () => connect(
-      (p: OwnProps) => p.color,
+    const getColorContainer = (opts: ConnectOpts<OwnProps> = {}) => connect(
       mapToProps,
+      {
+        key: (p: OwnProps) => p.color,
+        ...opts
+      }
     )(StatelessComponent);
 
     it("synchronizes state across components with the same key", () => {
@@ -184,6 +187,29 @@ describe("Connect", () => {
       // Unmount second (all unmounted now)
       wrapper2.unmount();
       expect(store.getState().local.blue).to.be.undefined;
+    });
+
+    it("persists store data after unmount if persist option is true", () => {
+      const ColorContainer = getColorContainer({
+        persist: true
+      });
+      const store = getStore();
+
+      // First mount / unmount
+      let wrapper1 = mount(<Provider store={store}>
+        <ColorContainer color="blue" />
+      </Provider>);
+      wrapper1.find("button#woof").simulate("click");
+      wrapper1.unmount();
+      expect(store.getState().local.blue).to.deep.equal({ dogs: 1 });
+
+      // Second mount / unmount
+      let wrapper2 = mount(<Provider store={store}>
+        <ColorContainer color="blue" />
+      </Provider>);
+      wrapper2.find("button#woof").simulate("click");
+      wrapper2.unmount();
+      expect(store.getState().local.blue).to.deep.equal({ dogs: 2 });
     });
   });
 });

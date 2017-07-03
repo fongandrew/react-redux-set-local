@@ -12,7 +12,12 @@ clean:
 	rm -rf lib
 
 build: clean
-	tsc
+	tsc -p tsconfig.build.json
 
 lint:
 	tslint --type-check --project tsconfig.json
+
+test:
+	mocha --recursive --reporter spec --bail \
+		--require test-init.js \
+		src/**/*.test.*

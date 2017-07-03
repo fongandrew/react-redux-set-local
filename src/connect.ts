@@ -9,11 +9,11 @@ import { connect as rrConnect } from "react-redux";
 import * as Config from "./config";
 import { SetLocalAction } from "./reducer";
 
-// Some generic helper types for React
-export type ComponentClass<P> =
-  React.ComponentClass<P> | React.StatelessComponent<P>;
-export interface HOCFn<ToProps, OwnProps> {
-  (r: ComponentClass<ToProps>): ComponentClass<OwnProps>;
+export type ComponentClass<P> = React.ComponentClass<P>;
+export type StatelessComponent<P> = React.StatelessComponent<P>;
+export type Component<P> = React.ComponentClass<P> | StatelessComponent<P>;
+export interface ComponentDecorator<OwnProps, ToProps> {
+    (component: Component<ToProps>): ComponentClass<OwnProps>;
 }
 
 /*
@@ -34,6 +34,11 @@ export interface HOCFn<ToProps, OwnProps> {
 */
 export interface SetLocalFn<S> { (s: S, type?: string): void; }
 
+// Type of a function that takes props and returns string for key in store
+interface KeyFn<OwnProps> {
+  (p: OwnProps): string;
+}
+
 /*
   Type for the function `connect` expects to map local state and setLocals to
   to props in the connected React component.
@@ -44,7 +49,7 @@ export interface MapToPropsFn<S, ToProps, OwnProps> {
    ownProps: OwnProps): ToProps;
 }
 
-// Helper function to return a unique key for a component class when
+// Helper function to return a unique default key for a component class when
 // none specified
 let currentLocalKeyIndex = 0;
 const getLocalKey = () => Config.LOCAL_KEY_PREFIX + (currentLocalKeyIndex++);
@@ -55,10 +60,22 @@ const getLocalKey = () => Config.LOCAL_KEY_PREFIX + (currentLocalKeyIndex++);
 */
 export const connectFactory = (storeKey?: string) => {
   function connect<S, ToProps, OwnProps>(
+    localKey: string|((p: OwnProps) => string),
     mapToProps: MapToPropsFn<S, ToProps, OwnProps>,
-    localKeyParam?: string|((p: OwnProps) => string)
-  ): HOCFn<ToProps, OwnProps> {
-    let localKey = localKeyParam || getLocalKey();
+  ): ComponentDecorator<OwnProps, ToProps>;
+  function connect<S, ToProps, OwnProps>(
+    mapToProps: MapToPropsFn<S, ToProps, OwnProps>
+  ): ComponentDecorator<OwnProps, ToProps>;
+  function connect<S, ToProps, OwnProps>(
+    firstArg: string|KeyFn<OwnProps>|MapToPropsFn<S, ToProps, OwnProps>,
+    secondArg?: MapToPropsFn<S, ToProps, OwnProps>
+  ): ComponentDecorator<OwnProps, ToProps> {
+    // De-overload params
+    const mapToProps = secondArg ||
+      firstArg as MapToPropsFn<S, ToProps, OwnProps>;
+    const localKey = secondArg ?
+      firstArg as string|KeyFn<OwnProps> :
+      getLocalKey();
     const keyFn = (ownProps: OwnProps) => typeof localKey === "function" ?
       localKey(ownProps) : localKey;
 

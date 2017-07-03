@@ -11,5 +11,8 @@ export var LOCAL_KEY_PREFIX = "redux-local-key-";
 // Default type for a SetLocalAction
 export var DEFAULT_ACTION_TYPE = "SET_LOCAL";
 
+// Type for SetLocalAction that clears local on unmount
+export var UNMOUNT_ACTION_TYPE = "UNMOUNT_LOCAL";
+
 // Where in store state connect function should look for local state
 export var DEFAULT_STORE_KEY = "local";

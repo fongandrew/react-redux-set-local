@@ -12,7 +12,7 @@ export interface SetLocalAction<K = string, V = any> {
     for debugging / development purposes if they want.
   */
   __setLocal: K;
-  __payload: V;
+  __payload: V|undefined;
 }
 
 function isSetLocalAction(action: Action): action is SetLocalAction {
@@ -30,8 +30,14 @@ export function reducer<A extends Action>(
 ): SetLocalStoreState {
   if (! state) return {};
   if (! isSetLocalAction(action)) return state;
-  return {
-    ...state,
-    [action.__setLocal]: action.__payload
-  };
+  if (action.__payload) {
+    return {
+      ...state,
+      [action.__setLocal]: action.__payload
+    };
+  } else {
+    state = { ...state };
+    delete state[action.__setLocal];
+    return state;
+  }
 }

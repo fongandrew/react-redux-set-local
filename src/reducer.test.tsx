@@ -27,4 +27,10 @@ describe("reducer", () => {
     expect(s1).to.deep.equal({ dogs: 4, cats: 5 });
     expect(s2).to.deep.equal({ dogs: 5, cats: 5 });
   });
+
+  it("removes key if payload is undefined", () => {
+    let s1 = { dogs: 4, cats: 5 };
+    let s2 = reducer(s1, makeAction("dogs", undefined));
+    expect(s2).to.deep.equal({ cats: 5 });
+  });
 });

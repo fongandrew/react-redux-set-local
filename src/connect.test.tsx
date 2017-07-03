@@ -48,13 +48,6 @@ const mapToProps: MapToPropsFn<LocalState, Props, OwnProps> = (
   };
 };
 
-const ClsContainer = connect(mapToProps)(ClsComponent);
-const StatelessContainer = connect(mapToProps)(StatelessComponent);
-const ColorContainer = connect(
-  (p: OwnProps) => p.color,
-  mapToProps,
-)(StatelessComponent);
-
 function getStore() {
   return createStore<any>(combineReducers({
     local: reducer
@@ -99,11 +92,25 @@ describe("Connect", () => {
     });
   };
 
-  describe("with class-based component", () => BaseTests(ClsContainer));
-  describe("with stateless component", () => BaseTests(StatelessContainer));
+  describe(
+    "with class-based component",
+    () => BaseTests(connect(mapToProps)(ClsComponent))
+  );
+
+  describe(
+    "with stateless component",
+    () => BaseTests(connect(mapToProps)(StatelessComponent))
+  );
+
   describe("with a key function", () => {
+    const getColorContainer = () => connect(
+      (p: OwnProps) => p.color,
+      mapToProps,
+    )(StatelessComponent);
+
     it("synchronizes state across components with the same key", () => {
-      let store = getStore();
+      const ColorContainer = getColorContainer();
+      const store = getStore();
 
       // First mount
       let wrapper1 = mount(<Provider store={store}>
@@ -122,8 +129,9 @@ describe("Connect", () => {
       expect(wrapper2.find("#dogs").text()).to.equal("3 blue dogs");
     });
 
-    it("isolates state across components wit different keys", () => {
-      let store = getStore();
+    it("isolates state across components with different keys", () => {
+      const ColorContainer = getColorContainer();
+      const store = getStore();
 
       // First mount
       let wrapper1 = mount(<Provider store={store}>
@@ -140,6 +148,42 @@ describe("Connect", () => {
 
       expect(wrapper1.find("#dogs").text()).to.equal("1 blue dog");
       expect(wrapper2.find("#dogs").text()).to.equal("2 red dogs");
+    });
+
+    it("cleans up store on unmount by default", () => {
+      const ColorContainer = getColorContainer();
+      const store = getStore();
+      let wrapper = mount(<Provider store={store}>
+        <ColorContainer color="blue" />
+      </Provider>);
+      wrapper.find("button#woof").simulate("click");
+      wrapper.unmount();
+      expect(store.getState().local.blue).to.be.undefined;
+    });
+
+    it("cleans up store on unmount only after all instances unmounted", () => {
+      const ColorContainer = getColorContainer();
+      const store = getStore();
+
+      // First mount
+      let wrapper1 = mount(<Provider store={store}>
+        <ColorContainer color="blue" />
+      </Provider>);
+      wrapper1.find("button#woof").simulate("click");
+
+      // Second mount
+      let wrapper2 = mount(<Provider store={store}>
+        <ColorContainer color="blue" />
+      </Provider>);
+      wrapper2.find("button#woof").simulate("click");
+
+      // Unmount first
+      wrapper1.unmount();
+      expect(store.getState().local.blue).to.deep.equal({ dogs: 2 });
+
+      // Unmount second (all unmounted now)
+      wrapper2.unmount();
+      expect(store.getState().local.blue).to.be.undefined;
     });
   });
 });

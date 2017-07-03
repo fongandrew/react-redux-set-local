@@ -7,6 +7,7 @@ import * as React from "react";
 import { Dispatch } from "redux";
 import { connect as rrConnect } from "react-redux";
 import * as Config from "./config";
+import { RefCounter } from "./refCounter";
 
 // Helper types
 export type ComponentClass<P> = React.ComponentClass<P>;
@@ -32,7 +33,7 @@ export interface ComponentDecorator<OwnProps, ToProps> {
 
   Optionally takes a type string for Redux logging purposes
 */
-export interface SetLocalFn<S> { (s: S, type?: string): void; }
+export interface SetLocalFn<S> { (s: S|undefined, type?: string): void; }
 
 // Type of a function that takes props and returns string for key in store
 interface KeyFn<OwnProps> {
@@ -75,19 +76,35 @@ export const connectFactory = (storeKey?: string) => {
       firstArg as MapToPropsFn<S, ToProps, OwnProps>;
     const localKey = secondArg && firstArg as string|KeyFn<OwnProps>;
 
+    /*
+      Set up an object to track reference counts so we know when to de-persist
+      Redux state.
+    */
+    const refCounts = new RefCounter();
 
-    /* Call react-redux's connect with functions that invoke mapToProps */
+    /*
+      Call react-redux's connect with functions that add in Redux functions
+      that our wrapper needs. Specify generics because typings don't seem
+      to recognize factory functions all that well.
+    */
 
-    interface StateProps {
-      localState: S;
+    interface RState {
+      localState?: S;
       keyFn: KeyFn<OwnProps>;
     }
 
-    interface DispatchProps {
+    interface RDispatch {
       dispatch: Dispatch<any>;
     }
 
-    return rrConnect<StateProps, DispatchProps, OwnProps, ToProps>(
+    interface WrapperProps {
+      localKey: string;
+      localState?: S;
+      setLocal: SetLocalFn<S>;
+      ownProps: OwnProps;
+    }
+
+    const withRedux = rrConnect<RState, RDispatch, OwnProps, WrapperProps>(
 
       /*
         mapStateToProps factory -- we use a factory because it lets us
@@ -115,13 +132,60 @@ export const connectFactory = (storeKey?: string) => {
       (stateProps, dispatchProps, ownProps: OwnProps) => {
         const { localState, keyFn } = stateProps;
         const { dispatch } = dispatchProps;
+        const localKey = keyFn(ownProps);
         const setLocal = (newState: S, type?: string) => dispatch({
           type: type || Config.DEFAULT_ACTION_TYPE,
-          __setLocal: keyFn(ownProps),
+          __setLocal: localKey,
           __payload: newState
         });
-        return mapToProps( localState, setLocal, ownProps);
+        return {
+          localKey,
+          localState,
+          setLocal,
+          ownProps
+        };
       });
+
+    /*
+      Decorator function creates a wrapper component around the one we're
+      targeting to handle mount / dismount behavior.
+    */
+    return (Comp: Component<ToProps>) => {
+      class ConnectLocal extends React.Component<WrapperProps, {}> {
+        render() {
+          let { localState, setLocal, ownProps } = this.props;
+          let props = mapToProps(localState, setLocal, ownProps);
+          return <Comp {...props} />;
+        }
+
+        componentDidMount() {
+          refCounts.incr(this.props.localKey);
+        }
+
+        componentDidUpdate(prevProps: WrapperProps) {
+          let { localKey: oldKey } = prevProps;
+          let { localKey } = this.props;
+          if (localKey !== oldKey) {
+            refCounts.incr(localKey);
+            if (! refCounts.decr(oldKey)) {
+              this.clearState();
+            }
+          }
+        }
+
+        componentWillUnmount() {
+          if (! refCounts.decr(this.props.localKey)) {
+            this.clearState();
+          }
+        }
+
+        // Clean up old state if nothing is listening to it anymore
+        clearState() {
+          this.props.setLocal(undefined, Config.UNMOUNT_ACTION_TYPE);
+        }
+      }
+      return withRedux(ConnectLocal);
+    };
   }
 
   return connect;

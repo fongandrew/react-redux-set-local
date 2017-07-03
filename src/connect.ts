@@ -7,8 +7,8 @@ import * as React from "react";
 import { Dispatch } from "redux";
 import { connect as rrConnect } from "react-redux";
 import * as Config from "./config";
-import { SetLocalAction } from "./reducer";
 
+// Helper types
 export type ComponentClass<P> = React.ComponentClass<P>;
 export type StatelessComponent<P> = React.StatelessComponent<P>;
 export type Component<P> = React.ComponentClass<P> | StatelessComponent<P>;
@@ -52,7 +52,7 @@ export interface MapToPropsFn<S, ToProps, OwnProps> {
 // Helper function to return a unique default key for a component class when
 // none specified
 let currentLocalKeyIndex = 0;
-const getLocalKey = () => Config.LOCAL_KEY_PREFIX + (currentLocalKeyIndex++);
+const getInstanceKey = () => Config.LOCAL_KEY_PREFIX + (currentLocalKeyIndex++);
 
 /*
   Creates a connect function for a given store key. By default, uses
@@ -73,37 +73,55 @@ export const connectFactory = (storeKey?: string) => {
     // De-overload params
     const mapToProps = secondArg ||
       firstArg as MapToPropsFn<S, ToProps, OwnProps>;
-    const localKey = secondArg ?
-      firstArg as string|KeyFn<OwnProps> :
-      getLocalKey();
-    const keyFn = (ownProps: OwnProps) => typeof localKey === "function" ?
-      localKey(ownProps) : localKey;
+    const localKey = secondArg && firstArg as string|KeyFn<OwnProps>;
 
-    return rrConnect(
-      // mapStateToProps
-      (state: any, ownProps: OwnProps): { localState: S } => ({
-        localState: (state || {})[
-          storeKey || Config.DEFAULT_STORE_KEY
-        ][keyFn(ownProps)]
-      }),
 
-      // mapDispatchToProps
-      (dispatch: Dispatch<SetLocalAction<string, S>>, ownProps: OwnProps): {
-        setLocal: SetLocalFn<S>
-      } => ({
-        setLocal: (newState: S, type?: string) => dispatch({
+    /* Call react-redux's connect with functions that invoke mapToProps */
+
+    interface StateProps {
+      localState: S;
+      keyFn: KeyFn<OwnProps>;
+    }
+
+    interface DispatchProps {
+      dispatch: Dispatch<any>;
+    }
+
+    return rrConnect<StateProps, DispatchProps, OwnProps, ToProps>(
+
+      /*
+        mapStateToProps factory -- we use a factory because it lets us
+        establish a key specific to a component instance if a prop-specific
+        one isn't provided.
+      */
+      (initialState: any, ownProps: OwnProps) => {
+        const instanceKey = localKey || getInstanceKey();
+        const keyFn = typeof instanceKey === "function" ?
+          instanceKey : () => instanceKey;
+        const thisStoreKey = storeKey || Config.DEFAULT_STORE_KEY;
+        return (state: any, ownProps: OwnProps) => ({
+          localState: (state || {})[thisStoreKey][keyFn(ownProps)],
+          keyFn
+        });
+      },
+
+      /*
+        mapDispatchToProps -- just pass along. We'll hook up in mergeProps
+        once we get keyFn from mapStateToProps factory.
+      */
+      (dispatch) => ({ dispatch }),
+
+      // mergeProps
+      (stateProps, dispatchProps, ownProps: OwnProps) => {
+        const { localState, keyFn } = stateProps;
+        const { dispatch } = dispatchProps;
+        const setLocal = (newState: S, type?: string) => dispatch({
           type: type || Config.DEFAULT_ACTION_TYPE,
           __setLocal: keyFn(ownProps),
           __payload: newState
-        })
-      }),
-
-      // mergeProps
-      (stateProps, dispatchProps, ownProps: OwnProps) => mapToProps(
-        stateProps.localState,
-        dispatchProps.setLocal,
-        ownProps
-      ));
+        });
+        return mapToProps( localState, setLocal, ownProps);
+      });
   }
 
   return connect;

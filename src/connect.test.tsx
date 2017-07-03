@@ -62,10 +62,10 @@ function getStore() {
 }
 
 describe("Connect", () => {
-  describe("with class-based component", () => {
+  const BaseTests = (Container: React.ComponentClass<OwnProps>) => {
     it("passes ownProps down", () => {
       let wrapper = mount(<Provider store={getStore()}>
-        <ClsContainer color="blue" />
+        <Container color="blue" />
       </Provider>);
       expect(wrapper.find("#dogs").text()).to.equal("0 blue dogs");
     });
@@ -73,22 +73,73 @@ describe("Connect", () => {
     it("passes updated local state down", () => {
       let store = getStore();
       let wrapper = mount(<Provider store={store}>
-        <ClsContainer color="blue" />
+        <Container color="blue" />
       </Provider>);
       wrapper.find("button#woof").simulate("click");
       wrapper.find("button#woof").simulate("click");
       expect(wrapper.find("#dogs").text()).to.equal("2 blue dogs");
     });
-  });
 
-  // Isolate
-  // Stores under correct key
+    it("isolates local state when remounting a component", () => {
+      let store = getStore();
 
-  it("works", () => {
-    getStore;
-    ClsContainer;
-    StatelessContainer;
-    ColorContainer;
-    expect(true).to.be.true;
+      // First mount
+      let wrapper = mount(<Provider store={store}>
+        <Container color="blue" />
+      </Provider>);
+      wrapper.find("button#woof").simulate("click");
+      wrapper.find("button#woof").simulate("click");
+
+      // Second mount - treat like new component
+      wrapper = mount(<Provider store={store}>
+        <Container color="blue" />
+      </Provider>);
+      wrapper.find("button#woof").simulate("click");
+      expect(wrapper.find("#dogs").text()).to.equal("1 blue dog");
+    });
+  };
+
+  describe("with class-based component", () => BaseTests(ClsContainer));
+  describe("with stateless component", () => BaseTests(StatelessContainer));
+  describe("with a key function", () => {
+    it("synchronizes state across components with the same key", () => {
+      let store = getStore();
+
+      // First mount
+      let wrapper1 = mount(<Provider store={store}>
+        <ColorContainer color="blue" />
+      </Provider>);
+      wrapper1.find("button#woof").simulate("click");
+
+      // Second mount
+      let wrapper2 = mount(<Provider store={store}>
+        <ColorContainer color="blue" />
+      </Provider>);
+      wrapper2.find("button#woof").simulate("click");
+      wrapper2.find("button#woof").simulate("click");
+
+      expect(wrapper1.find("#dogs").text()).to.equal("3 blue dogs");
+      expect(wrapper2.find("#dogs").text()).to.equal("3 blue dogs");
+    });
+
+    it("isolates state across components wit different keys", () => {
+      let store = getStore();
+
+      // First mount
+      let wrapper1 = mount(<Provider store={store}>
+        <ColorContainer color="blue" />
+      </Provider>);
+      wrapper1.find("button#woof").simulate("click");
+
+      // Second mount
+      let wrapper2 = mount(<Provider store={store}>
+        <ColorContainer color="red" />
+      </Provider>);
+      wrapper2.find("button#woof").simulate("click");
+      wrapper2.find("button#woof").simulate("click");
+
+      expect(wrapper1.find("#dogs").text()).to.equal("1 blue dog");
+      expect(wrapper2.find("#dogs").text()).to.equal("2 red dogs");
+    });
   });
 });

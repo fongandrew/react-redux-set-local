@@ -21,12 +21,12 @@ specific component (e.g. is this dropdown open?). Redux's state management is,
 by design, independent of React's component architecture, so to handle even
 simple state changes in Redux, we have to write the following:
 
-(1) An action to represent changes to the component state
-(2) A reducer to apply component
-(3) Code to hook the reducer
-(4) The React component itself
-(5) Container code hooking up the React component to code that dispatches
-    our actions
+- An action to represent changes to the component state
+- A reducer to apply component
+- Code to hook the reducer
+- The React component itself
+- Container code hooking up the React component to code that dispatches
+  our actions
 
 The simplest alternative to this is to just use React's `setState`
 function. But this deprives us of Redux's dev tools and other benefits.
@@ -36,18 +36,18 @@ way to connect an isolated portion of a Redux store's state to your component
 while still maintaining separation between presentation and state management.
 
 
-Usage
------
+Basic Usage
+-----------
 
 Use `combineReducers` to isolate a portion of your store for
 `react-redux-set-local` and hook up the reducer.  By convention, we use the
-`local` property on our Redux state, but you can change this if you wish.
+`local` property on our Redux state.
 
 ```js
 import { createStore, combineReducers } from "redux";
 import { reducer } from "react-redux-set-local";
 
-let store = createStore(combineReducers({
+const store = createStore(combineReducers({
   local: reducer
 }));
 ```
@@ -58,7 +58,7 @@ Then use the `connect` function to apply a function that takes
 import { connect } from "react-redux-set-local";
 
 // Presentation (component)
-const StatelessComponent = (props) => <div>
+const DogShow = (props) => <div>
   <div>
     <span id="dogs">
       {props.dogs} {props.color} dog{props.dogs === 1 ? "" : "s"}
@@ -79,7 +79,54 @@ const mapToProps = (localState, setLocal, ownProps) => {
   };
 };
 
-export const Container = connect()(StatelessComponent);
+export const Container = connect(mapToProps)(DogShow);
+```
+
+By default, `localState` is specific to a specific component instance. It may
+be undefined (e.g. when the component first mounts).
+
+The `setLocal` function simply replaces the existing state. Unlike React's
+`setState`, it does not merge changes or provide callbacks.
+
+Like in `react-redux`, `ownProps` refers to the props passed to the container
+element.
+
+
+Connect Factory
+---------------
+If you use something other than `local` with `combineReducers` for the reducer,
+you should invoke `connectFactory` insetad of `connect`.
+
+```js
+
+import { createStore, combineReducers } from "redux";
+import { reducer, connectFactory } from "react-redux-set-local";
+
+const store = createStore(combineReducers({
+  localState: reducer
+}));
+
+const connect = connectFactory("localState");
+```
+
+Explicit Keys
+-------------
+You can provide an explicit key string, or a function that returns key strings
+from props to synchronize state between components.
+
+```js
+
+export const Container = connect(
+  mapToProps,
+  (props) => props.color
+)(DogShow);
+
+...
+
+let c1 = <Container color="blue" />; // Displays the same dog count as c2
+let c2 = <Container color="blue" />; // Displays the same dog count as c1
+let c3 = <Container color="red" />; // May display different dog count
+
 ```
 
 ----

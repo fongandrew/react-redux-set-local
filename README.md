@@ -10,8 +10,6 @@ Unlike `react-redux` (and some other prior attempts to create "local"
 Redux state), rather than passing down a dispatch function, we pass down
 a `setLocal` function that we can use to replace existing state.
 
-**Work in progress. Somewhat functional but not yet published on NPM.**
-
 Why?
 ----
 Redux's dispatch / action / reducer architecture make it easy to reason
@@ -37,9 +35,19 @@ This is where `react-redux-set-local` comes in. This package provides a
 way to connect an isolated portion of a Redux store's state to your component
 while still maintaining separation between presentation and state management.
 
+Installation
+------------
+
+`npm install react-redux-set-local --save` or
+`yarn add react-redux-set-local`
+
+Requires React and React-Redux as peer dependencies.
+
 
 Basic Usage
 -----------
+
+Install `react-redux-set-local`
 
 Use `combineReducers` to isolate a portion of your store for
 `react-redux-set-local` and hook up the reducer.  By convention, we use the

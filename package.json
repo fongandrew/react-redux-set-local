@@ -1,10 +1,15 @@
 {
   "name": "react-redux-set-local",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local Redux state without writing your own reducers",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fongandrew/react-redux-set-local.git"
+  },
   "author": "Andrew Fong <id@andrewfong.com>",
+  "homepage": "https://github.com/fongandrew/react-redux-set-local",
   "license": "MIT",
   "devDependencies": {
     "@types/chai": "^4.0.1",

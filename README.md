@@ -127,7 +127,7 @@ from props to synchronize state between components.
 ```js
 
 export const Container = connect(mapToProps, {
-  key: (props) => props.color;
+  key: (props) => props.color
 })(DogShow);
 
 ...
@@ -136,6 +136,16 @@ let c1 = <Container color="blue" />; // Displays the same dog count as c2
 let c2 = <Container color="blue" />; // Displays the same dog count as c1
 let c3 = <Container color="red" />; // May display different dog count
 
+```
+
+By default, the local Redux state will clear when the container is unmounted,
+but you can persist the state with the `persist` option:
+
+```js
+export const Container = connect(mapToProps, {
+  key: (props) => props.color,
+  persist: true
+})(DogShow);
 ```
 
 ----

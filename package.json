@@ -1,6 +1,6 @@
 {
   "name": "react-redux-set-local",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Local Redux state without writing your own reducers",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",

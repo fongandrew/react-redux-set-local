@@ -12,7 +12,7 @@ a `setLocal` function that we can use to replace existing state.
 
 Why?
 ----
-Redux's dispatch / action / reducer architecture make it easy to reason
+Redux's dispatch / action / reducer architecture makes it easy to reason
 about complex state management. Plus the dev tools and overall community
 support is fantastic.
 

@@ -12,18 +12,22 @@ a `setLocal` function that we can use to replace existing state.
 
 Why?
 ----
-Redux's dispatch / action / reducer architecture makes it easy to reason
-about complex state management. Plus the dev tools and overall community
-support is fantastic.
+[Redux](http://redux.js.org/)'s dispatch / action / reducer architecture makes
+it easy to reason about complex state management. Plus the dev tools and
+overall community support is fantastic.
 
-However, Redux does not work particularly well with state that's local to a
-specific component (e.g. is this dropdown open?). Redux's state management is,
-by design, independent of React's component architecture, so to handle even
-simple state changes in Redux, we have to write the following:
+However, Redux is overkill for state that's local to a specific component
+(e.g. is this dropdown open?). Redux's state management is, by design,
+independent of React's component architecture. Separating presentation logic
+from your state management code is great, but a standard React-Redux
+implementation (even using the helpful
+[react-redux](https://github.com/reactjs/react-redux) library) still requires
+a lot of glue code to hold everything together. Even simple state changes
+require all of the the following:
 
 - An action to represent changes to the component state
-- A reducer to apply component
-- Code to hook the reducer
+- A reducer to apply the action to our store state
+- Code to hook the reducer to the store
 - The React component itself
 - Container code hooking up the React component to code that dispatches
   our actions
@@ -53,7 +57,7 @@ Use `combineReducers` to isolate a portion of your store for
 `react-redux-set-local` and hook up the reducer.  By convention, we use the
 `local` property on our Redux state.
 
-```js
+```jsx
 import { createStore, combineReducers } from "redux";
 import { reducer } from "react-redux-set-local";
 
@@ -64,7 +68,7 @@ const store = createStore(combineReducers({
 
 Then use the `connect` function to apply a function that takes
 
-```js
+```jsx
 import { connect } from "react-redux-set-local";
 
 // Presentation (component)
@@ -107,7 +111,7 @@ Connect Factory
 If you use something other than `local` with `combineReducers` for the reducer,
 you should invoke `connectFactory` insetad of `connect`.
 
-```js
+```jsx
 
 import { createStore, combineReducers } from "redux";
 import { reducer, connectFactory } from "react-redux-set-local";
@@ -124,7 +128,7 @@ Explicit Keys
 You can provide an explicit key string, or a function that returns key strings
 from props to synchronize state between components.
 
-```js
+```jsx
 
 export const Container = connect(mapToProps, {
   key: (props) => props.color
@@ -141,7 +145,7 @@ let c3 = <Container color="red" />; // May display different dog count
 By default, the local Redux state will clear when the container is unmounted,
 but you can persist the state with the `persist` option:
 
-```js
+```jsx
 export const Container = connect(mapToProps, {
   key: (props) => props.color,
   persist: true
@@ -151,5 +155,6 @@ export const Container = connect(mapToProps, {
 ----
 
 Inspired by:
+* https://github.com/FormidableLabs/freactal/
 * https://github.com/threepointone/redux-react-local
 * https://medium.com/@jeswin/implementing-redux-is-tedious-but-it-doesnt-have-to-be-33702a1fb1dd

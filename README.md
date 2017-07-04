@@ -1,5 +1,7 @@
 react-redux-set-local
 =====================
+[![Build Status](https://travis-ci.org/fongandrew/react-redux-set-local.svg?branch=master)](https://travis-ci.org/fongandrew/react-redux-set-local)
+
 Local Redux state in React without writing your own reducers.
 
 Like `react-redux`, we use a higher-order component to connect a

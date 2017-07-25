@@ -62,6 +62,12 @@ export interface ConnectOpts<OwnProps> {
     Should state persist after component unmount
   */
   persist?: boolean;
+
+  /*
+    Default types for dispatches by this component
+  */
+  updateType?: string;
+  unmountType?: string;
 }
 
 // Helper function to return a unique default key for a component class when
@@ -135,8 +141,9 @@ export const connectFactory = (storeKey?: string) => {
         const { localState, keyFn } = stateProps;
         const { dispatch } = dispatchProps;
         const localKey = keyFn(ownProps);
+        const defaultType = opts.updateType || Config.DEFAULT_ACTION_TYPE;
         const setLocal = (newState: S, type?: string) => dispatch({
-          type: type || Config.DEFAULT_ACTION_TYPE,
+          type: type || defaultType,
           __setLocal: localKey,
           __payload: newState
         });
@@ -180,7 +187,8 @@ export const connectFactory = (storeKey?: string) => {
         // Clean up old state if nothing is listening to it anymore
         private clearState(key: string) {
           if (!refCounts.decr(key) && !opts.persist) {
-            this.props.setLocal(undefined, Config.UNMOUNT_ACTION_TYPE);
+            let actionType = opts.unmountType || Config.UNMOUNT_ACTION_TYPE;
+            this.props.setLocal(undefined, actionType);
           }
         }
       }

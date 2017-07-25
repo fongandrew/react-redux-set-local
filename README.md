@@ -152,6 +152,31 @@ export const Container = connect(mapToProps, {
 })(DogShow);
 ```
 
+Customizing Action Types
+------------------------
+
+By default, calling a `setLocal` function dispatches the `SET_LOCAL` action.
+You can customize the type used by passing a second, type string to the
+`setLocal` function:
+
+```js
+setLocal({ dogs: locals.dogs + 1 }, "WOOF");
+```
+
+You can also specify default action types for a component when connecting:
+
+```jsx
+export const Container = connect(mapToProps, {
+  updateType: "WOOF", // Type for explicit calls to `setLocal`
+  unmountType: "BARK" // Type for when this component unmounts
+})(DogShow);
+```
+
+NB: RRSL's reducer doesn't care about types here. It instead looks to the
+presence of `__setLocal` and `__payload` properties on the action. Specifying
+a type here is solely for the purpose of debugging or to help RRSL play nice
+with other reducers or middleware.
+
 ----
 
 Inspired by:

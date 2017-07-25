@@ -1,4 +1,5 @@
 import * as React from "react";
+import * as Sinon from "sinon";
 import { expect } from "chai";
 import { mount } from "enzyme";
 import { createStore, combineReducers } from "redux";
@@ -210,6 +211,26 @@ describe("Connect", () => {
       wrapper2.find("button#woof").simulate("click");
       wrapper2.unmount();
       expect(store.getState().local.blue).to.deep.equal({ dogs: 2 });
+    });
+  });
+
+  describe("with a type option", () => {
+    it("uses the specified type for dispatches", () => {
+      const store = getStore();
+      const Container = connect(mapToProps, {
+        updateType: "WOOF",
+        unmountType: "BARK"
+      })(StatelessComponent);
+      let spy = Sinon.spy(store, "dispatch");
+      let wrapper = mount(<Provider store={store}>
+        <Container color="blue" />
+      </Provider>);
+
+      wrapper.find("button#woof").simulate("click");
+      Sinon.assert.calledWith(spy, Sinon.match.has("type", "WOOF"));
+
+      wrapper.unmount();
+      Sinon.assert.calledWith(spy, Sinon.match.has("type", "BARK"));
     });
   });
 });
